@@ -1,4 +1,5 @@
-from hog_sim import expected_frequency
+from hog_sim import expected_frequency, human_strat, create_counter
+from trot_sim import perf_strat_old, create_mock_counter
 from PIL import Image
 import numpy
 from math import pi, atan
@@ -6,7 +7,8 @@ import os
 
 def visualize_rate(strat1, strat2, fn, fname):
     '''Creates a visualization of a function relating to a game of Hog, in the form of a 500x500 image.
-       5x5 groups of pixels are used to represent a functions output for a given input of scores.
+       5x5 groups of pixels are used to represent a functions output for a given input of scores. The
+       first player's score is represented on the x-axis, while the second is along the y.
     '''
     fname = os.path.join(os.path.dirname(__file__), 'resources/visualizations/' + fname)
     image_arr = numpy.zeros((100, 100, 3), dtype=numpy.uint8)
@@ -43,3 +45,12 @@ def create_adjusted_ef(strat1, strat2, contrast = 5000):
         return (atan((expected_frequency(strat1, strat2, score1, score2) - average) * contrast) + pi/2)/pi
     
     return adjusted_ef
+
+if __name__ == '__main__':
+    seed = human_strat
+    tutor = perf_strat_old
+    for i in range(10):
+        visualize_rate(None, None, create_strat_wrapper(tutor), 'learn/trot_human_iter' + str(i) + '.png')
+        tutor = create_mock_counter(tutor, seed)[0]
+    
+        

@@ -9,18 +9,19 @@ Purpose: Simulate and find the expected win rate for two strategies in the game 
 from hog_sim import memoize, get_frequencies, is_swap, roll_dice
 import sys
 import pickle
+import os
+
+resources_path = os.path.join(os.path.dirname(__file__), 'resources/')
 
 sys.setrecursionlimit(5000)
 
 #strats
-perf_table_old = pickle.load(open('perf_table_old.p', 'rb'))
+perf_table_old = pickle.load(open(resources_path + 'strategies/perf_table_old.p', 'rb'))
 perf_strat_old = lambda a, b: perf_table_old[a][b]
 a0 = lambda x, y: 0
 a1 = lambda x, y: 1
 a7 = lambda x, y: 7
 a8 = lambda x, y: 8
-iterts = pickle.load(open('itersAll.p', 'rb'))
-strats = [lambda a, b: i[a][b] for i in iterts]
 
 def hybrid(x, y):
     if x or y: return 4

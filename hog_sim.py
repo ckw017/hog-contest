@@ -14,7 +14,7 @@ def memoize(fn):
         if args not in memoized_fn.memo:
             memoized_fn.memo[args]=fn(*args)
         return memoized_fn.memo[args]
-    memoized_fn.memo={}
+    memoized_fn.memo = {}
     return memoized_fn
 
 @memoize
@@ -162,7 +162,7 @@ def sim_opponent(score1, score2, strat):
         
         Returns:
             (float, int): The expected win rate and the number of dice rolled
-    
+            
     '''
     num_rolls = strat(score1, score2)
     freqs = get_frequencies(num_rolls, score2)
@@ -183,10 +183,7 @@ def apply_rules_counter(score1, score2, strat, next_sim):
             (float, int): The expected win rate for a given pair of scores for Player 1
     
     '''
-    if score1 > 99:
-        return 1
-    elif score2 > 99:
-        return 0
+    if score1 > 99: return 1
     if is_swap(score1, score2):
         score1, score2 = score2, score1
     return 1 - next_sim(score2, score1, strat)[0]
@@ -232,7 +229,7 @@ def learn(iterations = 12, seed = lambda x, y: 4):
     return counter
 
 def human_strat(score1, score2):
-    '''A simple manmade Hog strategy'''
+    '''A simple but effective Hog strategy'''
     if is_swap(score1 + free_bacon(score2), score2) and score1 < score2:
         return 0
     if is_swap(score1 + 1, score2) and score1 < score2:
@@ -270,6 +267,7 @@ def average_win_rate(strat1, strat2, matches = 1000):
 
 @memoize
 def expected_frequency(strat1, strat2, score1, score2):
+    '''Calculates the expected frequency of a turn taking place in a given game.'''
     if score1 == 0:
         if score2 == 0: return 0.5
     if is_swap(score1, score2): score1, score2 = score2, score1
@@ -282,12 +280,3 @@ def expected_frequency(strat1, strat2, score1, score2):
             if i in freqs:
                 total_freq += expected_frequency(strat2, strat1, prev_score2, score1) * freqs[i]
     return total_freq
-
-@memoize
-def second_move_base_case(strat2, score2):
-    num_rolls= strat2(0, 0)
-    freqs = get_frequencies(num_rolls, 0)
-    if score2 in freqs: return freqs[score2] * 0.5
-    
-if __name__ == '__main__':
-    optimal_strategy = learn()

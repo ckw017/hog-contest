@@ -7,7 +7,11 @@ Purpose: Simulate and find the expected win rate for two strategies in the game 
          Create an optimal counter strategy by selecting the best rolls for each set of scores when playing against a given strategy
 '''
 from random import randint
+import sys
 
+sys.setrecursionlimit(100000)
+
+max_score = 100
 def memoize(fn):
     '''Memoization decorator'''
     def memoized_fn(*args):
@@ -123,7 +127,7 @@ def apply_rules(strat1, strat2, score1, score2):
             float: The expected probability of strat1 winning against strat2
             
     '''
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     if is_swap(score1, score2):
         score1, score2 = score2, score1
     return 1 - sim_game(strat2, strat1, score2, score1)
@@ -183,10 +187,19 @@ def apply_rules_counter(score1, score2, strat, next_sim):
             (float, int): The expected win rate for a given pair of scores for Player 1
     
     '''
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     if is_swap(score1, score2):
         score1, score2 = score2, score1
     return 1 - next_sim(score2, score1, strat)[0]
+
+def clear_memos():
+    '''Clears the memos of methods used in learn'''
+    expected_frequency.memo = {}
+    sim_counter.memo = {}
+    sim_opponent.memo = {}
+    apply_rules_counter.memo = {}
+    apply_rules.memo = {}
+    sim_game.memo = {}
 
 def create_counter(strat):
     '''Creates the optimal counter strategy against strat
@@ -200,9 +213,9 @@ def create_counter(strat):
     
     '''
     counter_table = []
-    for y in range(100):
-        counter_table.append([0] * 100)
-        for x in range(100):
+    for y in range(max_score + 1):
+        counter_table.append([0] * (max_score + 1))
+        for x in range(max_score + 1):
             counter_table[y][x] = sim_counter(y, x, strat)[1]
     
     def counter(score1, score2):
@@ -225,6 +238,7 @@ def learn(iterations = 12, seed = lambda x, y: 4):
     counter = create_counter(seed)
     if iterations:
         print("Iterations Left: {:>2}, Rate: {}".format(iterations, counter[2]))
+        clear_memos()
         return learn(iterations - 1, counter[0])
     return counter
 
@@ -234,7 +248,7 @@ def human_strat(score1, score2):
         return 0
     if is_swap(score1 + 1, score2) and score1 < score2:
         return 10
-    if 100 - score1 <= free_bacon(score2):
+    if max_score + 1 - score1 <= free_bacon(score2):
         return 0
     return 8
 
@@ -254,7 +268,7 @@ def roll_dice(num_dice, opp_score):
 
 def play(strat1, strat2, score1 = 0, score2 = 0):
     '''Plays an actual game using random, fair dice'''
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     score1 += roll_dice(strat1(score1, score2), score2)
     if is_swap(score1, score2): score1, score2 = score2, score1
     return 1 - play(strat2, strat1, score2, score1)

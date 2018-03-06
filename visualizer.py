@@ -1,4 +1,4 @@
-from hog_sim import expected_frequency, human_strat, create_counter
+from hog_sim import expected_frequency, human_strat, create_counter, max_score, sim_game
 from trot_sim import perf_strat_old, create_mock_counter
 from PIL import Image
 import numpy
@@ -11,13 +11,12 @@ def visualize_rate(strat1, strat2, fn, fname):
        first player's score is represented on the x-axis, while the second is along the y.
     '''
     fname = os.path.join(os.path.dirname(__file__), 'resources/visualizations/' + fname)
-    image_arr = numpy.zeros((100, 100, 3), dtype=numpy.uint8)
-    for y in range(100):
-        for x in range(100):
+    image_arr = numpy.zeros((max_score + 1, max_score + 1, 3), dtype=numpy.uint8)
+    for y in range(max_score + 1):
+        for x in range(max_score + 1):
             rate = fn(strat1, strat2, y, x)
-            image_arr[99 - x][y] = [255 * (1 - rate), 255 * rate, 127]
+            image_arr[max_score - x][y] = [255 * (1 - rate), 255 * rate, 127]
     img = Image.fromarray(image_arr, 'RGB')
-    img = img.resize((500, 500))
     img.save(fname)
     img.close()
 
@@ -36,8 +35,8 @@ def create_adjusted_ef(strat1, strat2, contrast = 5000):
        deviation from the mean more pronounced in the visualization.
     '''
     average = 0 
-    for x in range(100):
-        for y in range(100):
+    for x in range(max_score + 1):
+        for y in range(max_score + 1):
             average += expected_frequency(strat1, strat2, x, y)/10000
     
     def adjusted_ef(ni1, ni2, score1, score2):
@@ -48,9 +47,9 @@ def create_adjusted_ef(strat1, strat2, contrast = 5000):
 
 if __name__ == '__main__':
     seed = human_strat
-    tutor = perf_strat_old
-    for i in range(10):
-        visualize_rate(None, None, create_strat_wrapper(tutor), 'learn/trot_human_iter' + str(i) + '.png')
-        tutor = create_mock_counter(tutor, seed)[0]
+    for i in range(15):
+        print(i);
+        visualize_rate(seed, human_strat, sim_game, 'learn_500/human_iter_rate' + str(i) + '.png')
+        seed = create_counter(seed)[0]
     
         

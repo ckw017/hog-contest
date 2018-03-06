@@ -6,7 +6,7 @@ Created on Sept 25, 2017
 Purpose: Simulate and find the expected win rate for two strategies in the game of Hog, with the modified rule set
          Create an optimal counter strategy by selecting the best rolls for each set of scores when playing against a given strategy
 '''
-from hog_sim import memoize, get_frequencies, is_swap, roll_dice
+from hog_sim import memoize, get_frequencies, is_swap, roll_dice, max_score
 import sys
 import pickle
 import os
@@ -15,7 +15,7 @@ resources_path = os.path.join(os.path.dirname(__file__), 'resources/')
 
 sys.setrecursionlimit(5000)
 
-#strats
+# strats
 perf_table_old = pickle.load(open(resources_path + 'strategies/perf_table_old.p', 'rb'))
 perf_strat_old = lambda a, b: perf_table_old[a][b]
 a0 = lambda x, y: 0
@@ -43,9 +43,9 @@ def expected_frequency(strat1, strat2, score1, score2, turn, can_trot):
         Returns:
             float: The expected frequency of appearance of the turn defined by the arguments in a match between Player 1 and Player 2
     '''
-    if score1 == 0: #If you score is 0, then you have yet to move
-        if score2 == 0 and turn == 0 and can_trot: return 0.5 #Checks if you have the first turn (Occurs 50% of the time)
-        return second_move_base_case(strat2, score2, turn, can_trot) #Checks if you had the second move
+    if score1 == 0:  # If you score is 0, then you have yet to move
+        if score2 == 0 and turn == 0 and can_trot: return 0.5  # Checks if you have the first turn (Occurs 50% of the time)
+        return second_move_base_case(strat2, score2, turn, can_trot)  # Checks if you had the second move
     if is_swap(score1, score2): score1, score2 = score2, score1
     total_freq, prev_turn = 0, (turn + 7) % 8
     for i in range(1, 61):
@@ -79,17 +79,17 @@ def second_move_base_case(strat2, score2, turn, can_trot):
        Returns:
            float: The expected frequency of appearance of the turn defined by the arguments in a match between Player 1 and Player 2
     '''
-    if (turn != 1 and turn != 2) or not can_trot: return 0 #strat1's first move can only take place on turns 1 or 2, and you should be able to trot
-    num_dice = strat2(0, 0) #strat1's roll on the first turn
-    if num_dice and turn == 1: #Opponent didn't time trot
+    if (turn != 1 and turn != 2) or not can_trot: return 0  # strat1's first move can only take place on turns 1 or 2, and you should be able to trot
+    num_dice = strat2(0, 0)  # strat1's roll on the first turn
+    if num_dice and turn == 1:  # Opponent didn't time trot
         freqs = get_frequencies(num_dice)
-        if score2 in freqs: return 0.5 * freqs[score2] #Probability that strat1 had the first turn and rolled enough to reach current score
-    elif not num_dice and turn == 2: #The opponent has time trotted
-        num_dice = strat2(1, 0) #strat1's roll on the second turn. Score will always be 1-0
+        if score2 in freqs: return 0.5 * freqs[score2]  # Probability that strat1 had the first turn and rolled enough to reach current score
+    elif not num_dice and turn == 2:  # The opponent has time trotted
+        num_dice = strat2(1, 0)  # strat1's roll on the second turn. Score will always be 1-0
         freqs = get_frequencies(num_dice, 0)
-        if score2 - 1 in freqs: return 0.5 * freqs[score2 - 1] #Probability that strat1 had the first turn and rolled enough to reach current score
+        if score2 - 1 in freqs: return 0.5 * freqs[score2 - 1]  # Probability that strat1 had the first turn and rolled enough to reach current score
         return 0
-    return 0 #Impossible situation -> 0 frequency
+    return 0  # Impossible situation -> 0 frequency
 
 @memoize
 def sim_counter_sets(tutor, strat, score1, score2, turn, can_trot):
@@ -119,7 +119,7 @@ def sim_counter_sets(tutor, strat, score1, score2, turn, can_trot):
     return roll_set
 
 @memoize
-def sim_counter(tutor, strat, score1 = 0, score2 = 0, turn = 0, can_trot = True):
+def sim_counter(tutor, strat, score1=0, score2=0, turn=0, can_trot=True):
     '''Simulates a match between tutor and strat, and uses that information to develop a counter strategy to strat.
        Will NOT create a perfect counter strategy, since the expected turn frequencies used to calculate the ideal
        roll is based on a match between the tutor and strat, instead of this strategy and strat.
@@ -136,9 +136,9 @@ def sim_counter(tutor, strat, score1 = 0, score2 = 0, turn = 0, can_trot = True)
            tuple: tuple containing the best roll with the best win rate and that rate
     '''
     best_roll, best_rate = 0, 0
-    roll_sets = ([sim_counter_sets(tutor, strat, score1, score2, turn, True ) for turn in range(8)] +
+    roll_sets = ([sim_counter_sets(tutor, strat, score1, score2, turn, True) for turn in range(8)] + 
                  [sim_counter_sets(tutor, strat, score1, score2, turn, False) for turn in range(8)])
-    total_frequency = sum([expected_frequency(tutor, strat, score1, score2, turn, True ) for turn in range(8)] +
+    total_frequency = sum([expected_frequency(tutor, strat, score1, score2, turn, True) for turn in range(8)] + 
                           [expected_frequency(tutor, strat, score1, score2, turn, False) for turn in range(8)])
     if total_frequency:
         for num_rolls in range(11):
@@ -162,7 +162,7 @@ def sim_opponent(tutor, strat, score1, score2, turn, can_trot):
 @memoize
 def apply_rules_counter(tutor, strat, score1, score2, turn, can_trot, sim_next, trotted):
     '''Applies the rules of the game, and then returns the win rate of the player whose turn is next'''
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     if is_swap(score1, score2): score1, score2 = score2, score1
     next_turn = (turn + 1) % 8
     if trotted: return sim_next(tutor, strat, score1, score2, next_turn, False)[0]
@@ -175,9 +175,9 @@ def create_mock_counter(tutor, strat):
     
     '''
     counter_table = []
-    for y in range(100):
-        counter_table.append([0] * 100)
-        for x in range(100):
+    for y in range(max_score + 1):
+        counter_table.append([0] * (max_score + 1))
+        for x in range(max_score + 1):
             counter_table[y][x] = sim_counter(tutor, strat, y, x)[1]
     
     
@@ -187,7 +187,7 @@ def create_mock_counter(tutor, strat):
     
     return mock_counter, counter_table, sim_counter(tutor, strat, 0, 0)[0]
 
-def learn(tutor, seed, iterations = 1):
+def learn(tutor, seed, iterations=1):
     '''Create's mock counter strategies in sequence, using previous outputs as tutors for the next iteration.
        Returns a list of all mock counter strategies created.
     '''
@@ -213,7 +213,7 @@ def compete(strategies):
     return strat_wins
 
 @memoize
-def sim_game(strat1 = a0, strat2 = a0, score1 = 0, score2 = 0, turn = 0, can_trot = True):
+def sim_game(strat1=a0, strat2=a0, score1=0, score2=0, turn=0, can_trot=True):
     '''Plays a simulated game between two strategies from a given set of scores.
        Returns the expected probability of strat1 winning against strat2.
 
@@ -251,7 +251,7 @@ def apply_rules(strat1, strat2, score1, score2, turn, trotted):
             
     '''
     assert 0 <= turn <= 7, "Invalid turn"
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     if is_swap(score1, score2): score1, score2 = score2, score1
     if trotted: return sim_game(strat1, strat2, score1, score2, (turn + 1) % 8, False)
     return 1 - sim_game(strat2, strat1, score2, score1, (turn + 1) % 8, True)
@@ -267,22 +267,22 @@ def clear_memos():
     apply_rules.memo = {}
     sim_game.memo = {}
 
-def play(strat1, strat2, score1 = 0, score2 = 0, turn = 0, can_trot = True):
+def play(strat1, strat2, score1=0, score2=0, turn=0, can_trot=True):
     '''Plays an actual game using random, fair dice'''
     assert 0 <= turn <= 7, "Invalid turn"
     num_dice = strat1(score1, score2)
     score1 += roll_dice(num_dice, score2)
-    if score1 > 99: return 1
+    if score1 > max_score: return 1
     if is_swap(score1, score2): score1, score2 = score2, score1
     if num_dice == turn and can_trot: return play(strat1, strat2, score1, score2, (turn + 1) % 8, False)
     return 1 - play(strat2, strat1, score2, score1, (turn + 1) % 8, True)
 
 def expected_win_rate(strat1, strat2):
     '''Calculates the expected win rate of a given strategy'''
-    return (sim_game(strat1, strat2) + 1 - sim_game(strat2, strat1))/2
+    return (sim_game(strat1, strat2) + 1 - sim_game(strat2, strat1)) / 2
 
-def average_win_rate(strat1, strat2, num_matches = 1000):
+def average_win_rate(strat1, strat2, num_matches=1000):
     '''Calculates the average win rate of strat1 for num_matches amount of games between strat1 and strat2'''
-    first_turn  = sum([play(strat1, strat2) for _ in range(num_matches//2)])
-    second_turn = num_matches/2 - sum([play(strat2, strat1) for _ in range(num_matches//2)])
-    return (first_turn + second_turn)/num_matches
+    first_turn = sum([play(strat1, strat2) for _ in range(num_matches // 2)])
+    second_turn = num_matches / 2 - sum([play(strat2, strat1) for _ in range(num_matches // 2)])
+    return (first_turn + second_turn) / num_matches
